@@ -1,0 +1,69 @@
+name: Update Package Versions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-versions-and-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # needed to create branches and PRs properly
+
+      - name: Cache asdf Tools
+        uses: actions/cache@v5
+        id: cache-asdf
+        with:
+          path: ~/.asdf
+          key: asdf-cache-${{ runner.os }}-${{ hashFiles('.tool-versions') }}
+
+      - name: Cache Virtual Environment
+        uses: actions/cache@v5
+        id: cache-venv
+        with:
+          path: .venv
+          key: venv-cache-${{ runner.os }}-${{ hashFiles('uv.lock') }}-${{ hashFiles('.github/workflows/update.yaml') }}-${{ hashFiles('.python-version') }}
+
+      - name: Install Dependencies via asdf
+        uses: asdf-vm/actions/install@v4
+
+      - name: Install Python Dependencies
+        if: steps.cache-venv.outputs.cache-hit != 'true'
+        run: uv venv
+
+      - name: Run Invoke Task and Capture Output
+        id: update-task
+        run: |
+          uv run invoke update.all > updates.json
+
+          # Build a nice summary: "argocd 3.0.6 → 3.1.0"
+          SUMMARY=$(jq -r '.[] | select(.updated==true) | "- \(.package): \(.from_version) → \(.to_version)"' updates.json | paste -sd '\n' -)
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          echo "$SUMMARY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          rm -rf updates.json
+
+      - name: Get Current Timestamp
+        id: date
+        run: echo "datetime=$(date +'%Y-%m-%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Commit and Create Pull Request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            chore: update packages
+
+            Updated packages:
+            ${{ steps.update-task.outputs.summary }}
+          title: "chore: update package versions (${{ steps.date.outputs.datetime }})"
+          body: |
+            The following packages were updated:
+
+            ${{ steps.update-task.outputs.summary }}
+          branch: update/package-versions-${{ steps.date.outputs.datetime }}
