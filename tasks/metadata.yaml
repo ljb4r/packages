@@ -88,6 +88,12 @@ packer:
   license: MPL-2.0
   repo_url: https://github.com/hashicorp/packer
   version: 1.14.3
+opencode:
+  description: The open source coding agent.
+  download_url: "{{repo_url}}/releases/download/v{{version}}/{{name}}-linux-x64.tar.gz"
+  license: MIT
+  repo_url: https://github.com/anomalyco/opencode
+  version: 1.1.25
 shellcheck:
   description: ShellCheck, a static analysis tool for shell scripts
   download_url: '{{repo_url}}/releases/download/v{{version}}/{{name}}-v{{version}}.{{os|capitalize}}.{{rust_arch}}.tar.xz'
@@ -114,7 +120,8 @@ starship:
   repo_url: https://github.com/starship/starship
   version: 1.24.2
 terraform:
-  description: Terraform is a tool for building, changing, and combining infrastructure
+  description:
+    Terraform is a tool for building, changing, and combining infrastructure
     safely and efficiently.
   download_url: https://releases.hashicorp.com/{{name}}/{{version}}/{{name}}_{{version}}_{{os}}_{{arch}}.zip
   license: Business Source License v1.1 https://www.hashicorp.com/bsl
